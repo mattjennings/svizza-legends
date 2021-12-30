@@ -9,15 +9,27 @@ const loops: Record<LoopPriority, Array<(time: number) => void>> = {
 
 type LoopPriority = 'pre' | 'step' | 'post'
 
+/**
+ * Creates a game loop for the Svelte component
+ */
 export function onGameLoop(
-  fn: (time: number) => void,
+  fn: (delta: number) => void,
   priority?: LoopPriority
 ) {
   onMount(() => loop(fn, priority))
 }
 
+/**
+ * Adds the function to the game loop.
+ *
+ * Returns a function that unsubscribes.
+ */
 export function loop(
-  fn: (time: number) => void,
+  fn: (delta: number) => void,
+
+  /**
+   * The priority of the loop. Order of loops are pre -> step -> post
+   */
   priority: LoopPriority = 'step'
 ) {
   loops[priority].push(fn)
@@ -59,7 +71,8 @@ export function coroutine<T, R>(
   return generator
 }
 
-function step(time = 0) {
+// start the game loop
+function gameLoop(time = 0) {
   function iterate(priority: LoopPriority) {
     for (let i = 0; i < loops[priority].length; i++) {
       loops[priority][i](time)
@@ -71,9 +84,10 @@ function step(time = 0) {
   iterate('post')
 
   const now = performance.now()
-  requestAnimationFrame((time) => step(time - now))
+  requestAnimationFrame((time) => gameLoop(time - now))
 }
 
+// start the game loop
 if (browser) {
-  step()
+  gameLoop()
 }
